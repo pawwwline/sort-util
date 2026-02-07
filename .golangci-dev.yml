@@ -1,0 +1,69 @@
+version: "2"
+
+run:
+  timeout: 10m
+  tests: true
+linters:
+  enable:
+    - govet         # базовые проверки Go
+    - staticcheck   # современный статический анализ
+    - errcheck      # проверка ошибок
+    - asciicheck
+    - cyclop
+    - decorder      #Check declaration order and count of types, constants, variables and functions.
+    - unused        # неиспользуемые переменные и функции
+    - exhaustruct
+    - funlen
+    - funcorder
+    - gocognit
+    - goconst
+    - gocritic
+    - iface
+    - importas
+    - ireturn
+    - interfacebloat
+    - nestif
+    - prealloc
+    - sloglint
+    - sqlclosecheck
+    - testableexamples
+    - unconvert
+    - whitespace
+    - wrapcheck
+    - gosec         # безопасность
+    - dupl          # дублирование кода
+    - funlen        # длина функций
+    - gocognit      # когнитивная сложность функций
+    - misspell      # опечатки
+    - varnamelen    # длина и читаемость имён переменных
+    - wrapcheck     # обёртывание ошибок
+    - contextcheck
+    - embeddedstructfieldcheck
+    - fatcontext
+    - godoclint
+    - loggercheck
+    - mnd
+    - reassign
+    - testpackage
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        arguments:
+          var: camelCase
+          const: UPPER_CASE
+          package: lower_case
+        severity: warning
+      - name: receiver-naming
+      - name: import-shadowing
+      - name: indent-error-flow
+      - name: exported
+      - name: comments
+  varnamelen:
+    min-len: 3
+    max-len: 30
+issues:
+  exclude-use-default: false
+exclude:
+  - "generated"
+  - "vendor"
