@@ -8,6 +8,11 @@ import (
 
 func newComparator(cfg config.Options) func(str1, str2 string) bool {
 	return func(str1, str2 string) bool {
+		if cfg.TrailingBlanks {
+			str1 = trimBlanks(str1)
+			str2 = trimBlanks(str2)
+		}
+
 		var isLess bool
 
 		if cfg.Numeric {
@@ -66,4 +71,20 @@ func uniqueLines(lines []string) []string {
 	}
 
 	return lines[:slow+1]
+}
+
+// trimBlanks remove spaces by moving pointer without any allocation
+func trimBlanks(line string) string {
+	start := 0
+
+	for start < len(line) && line[start] == ' ' {
+		start++
+	}
+
+	end := len(line)
+	for end > start && line[end-1] == ' ' {
+		end--
+	}
+
+	return line[start:end]
 }
