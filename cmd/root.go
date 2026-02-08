@@ -1,6 +1,8 @@
+// Package cmd provides the command-line interface implementation using Cobra.
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -24,9 +26,11 @@ var rootCmd = &cobra.Command{
 		if len(args) > 0 {
 			file, err := os.Open(args[0])
 			if err != nil {
-				return err
+				return fmt.Errorf("open input file: %w", err)
 			}
-			defer file.Close()
+
+			defer func() { _ = file.Close() }()
+
 			reader = file
 		}
 
@@ -37,6 +41,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+// Execute adds all child commands to the root command and sets flags appropriately.
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
@@ -48,5 +53,4 @@ func init() {
 	rootCmd.Flags().BoolVarP(&cfg.Numeric, "numeric", "n", false, "compare according to string numerical value")
 	rootCmd.Flags().BoolVarP(&cfg.Unique, "unique", "u", false, "output only unique values")
 	rootCmd.Flags().BoolVarP(&cfg.Reverse, "reverse", "r", false, "reverse sort order")
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
