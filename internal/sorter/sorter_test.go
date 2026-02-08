@@ -94,6 +94,16 @@ func TestInMemory_Sort(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "Mixed blanks and numeric",
+			cfg: config.Options{
+				TrailingBlanks: true,
+				Numeric:        true,
+			},
+			ctx:      context.Background(),
+			input:    "  10\n 2\n",
+			expected: " 2\n  10\n",
+		},
+		{
 			name:     "Numeric sort has alphabetical chars",
 			cfg:      config.Options{Numeric: true},
 			ctx:      context.Background(),
@@ -116,6 +126,15 @@ func TestInMemory_Sort(t *testing.T) {
 			input:    "apple\nbanana\napple\n",
 			expected: "apple\nbanana\n",
 			wantErr:  false,
+		},
+		{
+			name: "Ignore leading blanks (spaces)",
+			cfg: config.Options{
+				TrailingBlanks: true,
+			},
+			ctx:      context.Background(),
+			input:    "  b\na\n",
+			expected: "a\n  b\n",
 		},
 		{
 			name:    "Test context canceled",
