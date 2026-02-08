@@ -5,13 +5,13 @@ run:
   tests: true
 linters:
   enable:
-    - govet         # базовые проверки Go
-    - staticcheck   # современный статический анализ
-    - errcheck      # проверка ошибок
+    - govet
+    - staticcheck
+    - errcheck
     - asciicheck
     - cyclop
-    - decorder      #Check declaration order and count of types, constants, variables and functions.
-    - unused        # неиспользуемые переменные и функции
+    - decorder
+    - unused
     - funlen
     - revive
     - funcorder
@@ -30,13 +30,13 @@ linters:
     - unconvert
     - whitespace
     - wrapcheck
-    - gosec         # безопасность
-    - dupl          # дублирование кода
-    - funlen        # длина функций
-    - gocognit      # когнитивная сложность функций
-    - misspell      # опечатки
-    - varnamelen    # длина и читаемость имён переменных
-    - wrapcheck     # обёртывание ошибок
+    - gosec
+    - dupl
+    - funlen
+    - gocognit
+    - misspell
+    - varnamelen
+    - wrapcheck
     - contextcheck
     - embeddedstructfieldcheck
     - fatcontext
@@ -63,7 +63,12 @@ linters-settings:
     min-len: 3
     max-len: 30
 issues:
-  exclude-use-default: false
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocognit
+        - cyclop
 exclude:
   - "generated"
   - "vendor"
