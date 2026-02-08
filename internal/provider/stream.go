@@ -54,5 +54,9 @@ func WriteLines(ctx context.Context, writer io.Writer, lines []string) error {
 		}
 	}
 
-	return bufW.Flush()
+	if err := bufW.Flush(); err != nil {
+		return fmt.Errorf("bufio write flush: %w", err)
+	}
+
+	return nil
 }
