@@ -12,8 +12,8 @@ linters:
     - cyclop
     - decorder      #Check declaration order and count of types, constants, variables and functions.
     - unused        # неиспользуемые переменные и функции
-    - exhaustruct
     - funlen
+    - revive
     - funcorder
     - gocognit
     - goconst
