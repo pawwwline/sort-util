@@ -6,14 +6,14 @@ import (
 	"sort-util/internal/config"
 )
 
-func newComparator(cfg config.Options) func(a, b string) bool {
-	return func(a, b string) bool {
+func newComparator(cfg config.Options) func(str1, str2 string) bool {
+	return func(str1, str2 string) bool {
 		var isLess bool
 
 		if cfg.Numeric {
-			isLess = compareNumeric(a, b)
+			isLess = compareNumeric(str1, str2)
 		} else {
-			return a < b
+			return str1 < str2
 		}
 
 		if cfg.Reverse {
@@ -24,21 +24,23 @@ func newComparator(cfg config.Options) func(a, b string) bool {
 	}
 }
 
-func compareNumeric(a, b string) bool {
-	//ignore error so strings that not numeric will be interpreted as 0.0
-	v1, _ := strconv.ParseFloat(a, 64)
-	v2, _ := strconv.ParseFloat(b, 64)
+func compareNumeric(str1, str2 string) bool {
+	// ignore error so strings that not numeric will be interpreted as 0.0
+	v1, _ := strconv.ParseFloat(str1, 64)
+	v2, _ := strconv.ParseFloat(str2, 64)
 
 	if v1 != v2 {
 		return v1 < v2
 	}
 
-	return a < b
+	return str1 < str2
 }
 
 // uniqueLines in-place deleting non unique elements
 func uniqueLines(lines []string) []string {
-	if len(lines) < 2 {
+	minLines := 2
+
+	if len(lines) < minLines {
 		return lines
 	}
 
