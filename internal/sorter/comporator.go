@@ -35,10 +35,10 @@ func compareNumeric(str1, str2 string) bool {
 
 	// if num is not numeric it is always more
 	if err1 != nil {
-		return false //is more
+		return false // is more
 	}
 	if err2 != nil {
-		return true //is less
+		return true // is less
 	}
 
 	if v1 != v2 {
