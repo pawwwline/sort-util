@@ -10,17 +10,19 @@ import (
 
 // ReadLines reads all lines from the provided reader into a string slice.
 func ReadLines(ctx context.Context, reader io.Reader) ([]string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("read start: %w", err)
+	}
+
 	var lines []string
 	scanner := bufio.NewScanner(reader)
 
 	// add context checking to exit earlier
 	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return nil, fmt.Errorf("context cancelled %w", ctx.Err())
-		default:
-			lines = append(lines, scanner.Text())
+		if err := ctx.Err(); err != nil {
+			return nil, fmt.Errorf("reading: %w", err)
 		}
+		lines = append(lines, scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -32,20 +34,25 @@ func ReadLines(ctx context.Context, reader io.Reader) ([]string, error) {
 
 // WriteLines writes a slice of strings to the writer, each followed by a newline.
 func WriteLines(ctx context.Context, writer io.Writer, lines []string) error {
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("write start: %w", err)
+	}
+
 	bufW := bufio.NewWriter(writer)
 
-	defer func() { _ = bufW.Flush() }()
-
 	for _, line := range lines {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context cancelled %w", ctx.Err())
-		default:
-			if _, err := bufW.WriteString(line + "\n"); err != nil {
-				return fmt.Errorf("bufio write: %w", err)
-			}
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("write cancelled: %w", err)
+		}
+		// skip unnecessary allocation
+		if _, err := bufW.WriteString(line); err != nil {
+			return fmt.Errorf("bufio write string: %w", err)
+		}
+
+		if err := bufW.WriteByte('\n'); err != nil {
+			return fmt.Errorf("bufio write newline: %w", err)
 		}
 	}
 
-	return nil
+	return bufW.Flush()
 }
