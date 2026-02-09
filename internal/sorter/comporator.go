@@ -21,6 +21,10 @@ func newComparator(cfg config.Options) func(str1, str2 string) bool {
 			isLess = str1 < str2
 		}
 
+		if cfg.Months {
+			isLess = compareMonths(str1, str2)
+		}
+
 		if cfg.Reverse {
 			isLess = !isLess
 		}
@@ -87,4 +91,107 @@ func trimBlanks(line string) string {
 	}
 
 	return line[start:end]
+}
+
+func compareMonths(str1, str2 string) bool {
+	month1 := parseMonths(str1)
+	month2 := parseMonths(str2)
+
+	return month1 < month2
+}
+
+// parseMonths parse months by bytes with 0 allocations.
+func parseMonths(line string) months {
+	if len(line) < 3 {
+		return 0
+	}
+
+	char1 := toUpper(line[0])
+	char2 := toUpper(line[1])
+	char3 := toUpper(line[2])
+
+	switch char1 {
+	case 'J':
+		return parseJ(char2, char3) // JAN || JUN || JUL
+	case 'M':
+		return parseM(char2, char3) // MAR || MAY
+	case 'A':
+		return parseA(char2, char3) // APR || AUG
+	default:
+		return parseUnique(char1, char2, char3) // FEB || SEP || OCT || NOV || DEC
+	}
+}
+
+func parseJ(char2, char3 byte) months {
+	if char2 == 'A' && char3 == 'N' {
+		return january
+	}
+	if char2 == 'U' {
+		if char3 == 'N' {
+			return june
+		}
+		if char3 == 'L' {
+			return july
+		}
+	}
+
+	return 0
+}
+
+func parseM(char2, char3 byte) months {
+	if char2 == 'A' {
+		if char3 == 'R' {
+			return march
+		}
+		if char3 == 'Y' {
+			return may
+		}
+	}
+
+	return 0
+}
+
+func parseA(char2, char3 byte) months {
+	if char2 == 'P' && char3 == 'R' {
+		return april
+	}
+	if char2 == 'U' && char3 == 'G' {
+		return august
+	}
+
+	return 0
+}
+
+// nolint p
+func parseUnique(c1, c2, c3 byte) months {
+	switch c1 {
+	case 'F':
+		if c2 == 'E' && c3 == 'B' {
+			return february
+		}
+	case 'S':
+		if c2 == 'E' && c3 == 'P' {
+			return september
+		}
+	case 'O':
+		if c2 == 'C' && c3 == 'T' {
+			return october
+		}
+	case 'N':
+		if c2 == 'O' && c3 == 'V' {
+			return november
+		}
+	case 'D':
+		if c2 == 'E' && c3 == 'C' {
+			return december
+		}
+	}
+	return 0
+}
+
+func toUpper(char byte) byte {
+	if char >= 'a' && char <= 'z' {
+		return char - ('a' - 'A')
+	}
+	return char
 }
