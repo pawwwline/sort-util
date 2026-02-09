@@ -8,4 +8,5 @@ type Options struct {
 	Unique         bool
 	Sorted         bool
 	TrailingBlanks bool
+	CheckSorted    bool
 }
