@@ -10,6 +10,7 @@ import (
 
 // ReadLines reads all lines from the provided reader into a string slice.
 func ReadLines(ctx context.Context, reader io.Reader) ([]string, error) {
+	// TODO: remove this check to tool function
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("read start: %w", err)
 	}
