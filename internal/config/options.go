@@ -9,4 +9,5 @@ type Options struct {
 	Sorted         bool
 	TrailingBlanks bool
 	CheckSorted    bool
+	Months         bool
 }
