@@ -8,7 +8,6 @@ import (
 
 	"sort-util/internal/app"
 	"sort-util/internal/config"
-	"sort-util/internal/sorter"
 
 	"github.com/spf13/cobra"
 )
@@ -34,8 +33,7 @@ var rootCmd = &cobra.Command{
 			reader = file
 		}
 
-		engine := sorter.NewInMemory(cfg)
-		application := app.New(engine)
+		application := app.New(cfg)
 
 		return application.Run(cmd.Context(), reader, os.Stdout)
 	},
