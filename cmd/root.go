@@ -52,4 +52,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&cfg.Unique, "unique", "u", false, "output only unique values")
 	rootCmd.Flags().BoolVarP(&cfg.Reverse, "reverse", "r", false, "reverse sort order")
 	rootCmd.Flags().BoolVarP(&cfg.TrailingBlanks, "blanks", "b", false, "remove trailing and leading blanks")
+	rootCmd.Flags().BoolVarP(&cfg.CheckSorted, "check-sorted", "c", false, "check sorted")
 }
