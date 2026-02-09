@@ -143,6 +143,34 @@ func TestInMemory_Sort(t *testing.T) {
 			input:   "b\na\n",
 			wantErr: true,
 		},
+		{
+			name: "Basic chronological sort",
+			cfg: config.Options{
+				Months: true,
+			},
+			ctx:      context.Background(),
+			input:    "march 3rd line\nJAN 1st line\nFeb 2nd line\n",
+			expected: "JAN 1st line\nFeb 2nd line\nmarch 3rd line\n",
+			wantErr:  false,
+		}, {name: "Full names and mixed case",
+			cfg: config.Options{
+				Months: true,
+			},
+			ctx:   context.Background(),
+			input: "July data\njanuary data\nMAY data\n",
+			// Result: january -> MAY -> July
+			expected: "january data\nMAY data\nJuly data\n",
+			wantErr:  false},
+		{name: "Full names and mixed case and reverse",
+			cfg: config.Options{
+				Months:  true,
+				Reverse: true,
+			},
+			ctx:   context.Background(),
+			input: "July data\njanuary data\nMAY data\n",
+			// Result: january -> MAY -> July
+			expected: "July data\nMAY data\njanuary data\n",
+			wantErr:  false},
 	}
 
 	for _, tt := range tests {
