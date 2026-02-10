@@ -13,16 +13,23 @@ func newComparator(cfg config.Options) func(str1, str2 string) bool {
 			str2 = trimBlanks(str2)
 		}
 
-		var isLess bool
-
-		if cfg.Numeric {
-			isLess = compareNumeric(str1, str2)
-		} else {
-			isLess = str1 < str2
+		if cfg.ColumnNum != 0 {
+			str1 = getColumn(str1, cfg.ColumnNum)
+			str2 = getColumn(str2, cfg.ColumnNum)
 		}
+
+		if str1 == str2 {
+			return false
+		}
+
+		var isLess bool
 
 		if cfg.Months {
 			isLess = compareMonths(str1, str2)
+		} else if cfg.Numeric {
+			isLess = compareNumeric(str1, str2)
+		} else {
+			isLess = str1 < str2
 		}
 
 		if cfg.Reverse {
@@ -194,4 +201,43 @@ func toUpper(char byte) byte {
 		return char - ('a' - 'A')
 	}
 	return char
+}
+
+// getColumn returns the N-th column (1-based) delimited by tabs.
+// and return empty string if column is not found
+func getColumn(line string, columnNum int) string {
+	// handle case of column with negative or 0 number
+	if columnNum < 1 {
+		return line
+	}
+
+	start := 0
+	currentColumn := 1
+
+	// finds start of column
+	for currentColumn < columnNum {
+		idx := -1
+
+		for i := 0; i < len(line); i++ {
+			if line[i] == '\t' {
+				idx = i
+
+				break
+			}
+		}
+		if idx == -1 {
+			return "" // didn't find out this column
+		}
+
+		start = idx + 1
+		currentColumn++
+	}
+
+	// find out end of column
+	end := start
+	for end < len(line) && line[end] != '\t' {
+		end++
+	}
+
+	return line[start:end]
 }
