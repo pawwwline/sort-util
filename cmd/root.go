@@ -54,4 +54,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&cfg.TrailingBlanks, "blanks", "b", false, "remove trailing and leading blanks")
 	rootCmd.Flags().BoolVarP(&cfg.CheckSorted, "check-sorted", "c", false, "check sorted")
 	rootCmd.Flags().BoolVarP(&cfg.Months, "months", "m", false, "compare months")
+	rootCmd.Flags().IntVarP(&cfg.ColumnNum, "column", "k", 1, "compare columns")
 }
