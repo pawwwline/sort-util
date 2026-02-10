@@ -171,6 +171,27 @@ func TestInMemory_Sort(t *testing.T) {
 			// Result: january -> MAY -> July
 			expected: "July data\nMAY data\njanuary data\n",
 			wantErr:  false},
+		{
+			name:     "Column sorting with numeric values",
+			cfg:      config.Options{ColumnNum: 2, Numeric: true},
+			ctx:      context.Background(),
+			input:    "ID_B\t100\nID_A\t20\nID_C\t5\n",
+			expected: "ID_C\t5\nID_A\t20\nID_B\t100\n",
+		},
+		{
+			name:     "Missing column (fallback to empty string)",
+			cfg:      config.Options{ColumnNum: 5, Numeric: true},
+			ctx:      context.Background(),
+			input:    "A\t10\nB\t20\n",
+			expected: "A\t10\nB\t20\n",
+		},
+		{
+			name:     "Leading spaces in column data",
+			cfg:      config.Options{ColumnNum: 2, Numeric: true, TrailingBlanks: true},
+			input:    "item1\t 50\nitem2\t 10\n",
+			expected: "item2\t 10\nitem1\t 50\n",
+			ctx:      context.Background(),
+		},
 	}
 
 	for _, tt := range tests {
