@@ -11,4 +11,5 @@ type Options struct {
 	CheckSorted    bool
 	Months         bool
 	ColumnNum      int
+	HumanSuffix    bool
 }
