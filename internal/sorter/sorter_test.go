@@ -192,6 +192,20 @@ func TestInMemory_Sort(t *testing.T) {
 			expected: "item2\t 10\nitem1\t 50\n",
 			ctx:      context.Background(),
 		},
+		{
+			name:     "Human suffix sort",
+			cfg:      config.Options{HumanSuffix: true},
+			ctx:      context.Background(),
+			input:    "2000T\n10\n1000000M\n",
+			expected: "10\n1000000M\n2000T\n",
+		},
+		{
+			name:     "Human suffix sort with not numeric values",
+			cfg:      config.Options{HumanSuffix: true},
+			ctx:      context.Background(),
+			input:    "2000T\n10\n1000000M\nbanana\napple\n",
+			expected: "10\n1000000M\n2000T\napple\nbanana\n",
+		},
 	}
 
 	for _, tt := range tests {
