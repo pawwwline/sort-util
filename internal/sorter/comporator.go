@@ -45,8 +45,8 @@ func newComparator(cfg config.Options) func(str1, str2 string) bool {
 
 func compareNumeric(str1, str2 string) bool {
 	// ignore error so strings that not numeric will be interpreted as 0.0
-	v1, err1 := strconv.ParseFloat(str1, 64)
-	v2, err2 := strconv.ParseFloat(str2, 64)
+	num1, err1 := strconv.ParseFloat(str1, 64)
+	num2, err2 := strconv.ParseFloat(str2, 64)
 
 	if err1 != nil && err2 != nil {
 		return str1 < str2
@@ -60,8 +60,8 @@ func compareNumeric(str1, str2 string) bool {
 		return true // is less
 	}
 
-	if v1 != v2 {
-		return v1 < v2
+	if num1 != num2 {
+		return num1 < num2
 	}
 
 	return str1 < str2
@@ -112,7 +112,7 @@ func compareMonths(str1, str2 string) bool {
 
 // parseMonths parse months by bytes with 0 allocations.
 func parseMonths(line string) months {
-	if len(line) < 3 {
+	if len(line) < minMonthLength {
 		return 0
 	}
 
@@ -172,7 +172,7 @@ func parseA(char2, char3 byte) months {
 	return 0
 }
 
-// nolint p
+// nolint:cyclop // parseUnique parses unique months by bytes to prevent allocations
 func parseUnique(c1, c2, c3 byte) months {
 	switch c1 {
 	case 'F':
@@ -277,16 +277,16 @@ func parseHumanSuffix(line string) (int, error) {
 
 	switch suffix {
 	case 'K':
-		multiplier = 1024
+		multiplier = kiB
 		line = line[:len(line)-1]
 	case 'M':
-		multiplier = 1024 * 1024
+		multiplier = miB
 		line = line[:len(line)-1]
 	case 'G':
-		multiplier = 1024 * 1024 * 1024
+		multiplier = giB
 		line = line[:len(line)-1]
 	case 'T':
-		multiplier = 1024 * 1024 * 1024 * 1024
+		multiplier = tiB
 		line = line[:len(line)-1]
 	}
 
