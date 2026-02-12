@@ -23,20 +23,20 @@ func New(cfg config.Options) *App {
 }
 
 // Run orchestrates the sorting process by passing the reader and writer to the underlying sorter.
-func (a *App) Run(ctx context.Context, r io.Reader, w io.Writer) error {
+func (a *App) Run(ctx context.Context, reader io.Reader, writer io.Writer) error {
 	if a.cfg.CheckSorted {
 		checker := sorter.NewChecker(a.cfg)
-		err := checker.CheckSorted(ctx, r)
+		err := checker.CheckSorted(ctx, reader)
 		if err != nil {
-			return fmt.Errorf("check sorting: %w", err)
+			return fmt.Errorf("check sorting: %writer", err)
 		}
 
 		return nil
 	}
 
 	inMemSorter := sorter.NewInMemory(a.cfg)
-	if err := inMemSorter.Sort(ctx, r, w); err != nil {
-		return fmt.Errorf("sort input: %w", err)
+	if err := inMemSorter.Sort(ctx, reader, writer); err != nil {
+		return fmt.Errorf("sort input: %writer", err)
 	}
 
 	return nil
