@@ -17,3 +17,15 @@ const (
 	november  months = iota
 	december  months = iota
 )
+
+const step = 10
+
+const (
+	_   = iota
+	kiB = 1 << (step * iota)
+	miB = 1 << (step * iota)
+	giB = 1 << (step * iota)
+	tiB = 1 << (step * iota)
+)
+
+const minMonthLength = 3
