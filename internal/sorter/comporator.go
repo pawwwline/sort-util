@@ -24,11 +24,14 @@ func newComparator(cfg config.Options) func(str1, str2 string) bool {
 
 		var isLess bool
 
-		if cfg.Months {
+		switch {
+		case cfg.Months:
 			isLess = compareMonths(str1, str2)
-		} else if cfg.Numeric {
+		case cfg.HumanSuffix:
+			isLess = compareHumanSuffix(str1, str2)
+		case cfg.Numeric:
 			isLess = compareNumeric(str1, str2)
-		} else {
+		default:
 			isLess = str1 < str2
 		}
 
@@ -240,4 +243,57 @@ func getColumn(line string, columnNum int) string {
 	}
 
 	return line[start:end]
+}
+
+func compareHumanSuffix(str1, str2 string) bool {
+	num1, err1 := parseHumanSuffix(str1)
+	num2, err2 := parseHumanSuffix(str2)
+
+	if err1 != nil && err2 != nil {
+		return str1 < str2
+	}
+
+	if err1 != nil {
+		return false // is more
+	}
+	if err2 != nil {
+		return true // is less
+	}
+
+	if num1 != num2 {
+		return num1 < num2
+	}
+
+	return str1 < str2
+}
+
+func parseHumanSuffix(line string) (int, error) {
+	if len(line) == 0 {
+		return 0, nil
+	}
+
+	suffix := line[len(line)-1]
+	multiplier := 1
+
+	switch suffix {
+	case 'K':
+		multiplier = 1024
+		line = line[:len(line)-1]
+	case 'M':
+		multiplier = 1024 * 1024
+		line = line[:len(line)-1]
+	case 'G':
+		multiplier = 1024 * 1024 * 1024
+		line = line[:len(line)-1]
+	case 'T':
+		multiplier = 1024 * 1024 * 1024 * 1024
+		line = line[:len(line)-1]
+	}
+
+	parsedNum, err := strconv.Atoi(line)
+	if err != nil {
+		return 0, err
+	}
+
+	return parsedNum * multiplier, nil
 }
