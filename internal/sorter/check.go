@@ -10,10 +10,12 @@ import (
 	"sort-util/internal/config"
 )
 
+// Checker provides methods to determine the sort order of data strings.
 type Checker struct {
 	cfg config.Options
 }
 
+// NewChecker provides new Checker struct
 func NewChecker(cfg config.Options) *Checker {
 	return &Checker{cfg: cfg}
 }
