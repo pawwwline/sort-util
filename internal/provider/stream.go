@@ -3,6 +3,7 @@ package provider
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,24 +11,24 @@ import (
 
 // ReadLines reads all lines from the provided reader into a string slice.
 func ReadLines(ctx context.Context, reader io.Reader) ([]string, error) {
-	// TODO: remove this check to tool function
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("read start: %w", err)
 	}
 
-	var lines []string
-	scanner := bufio.NewScanner(reader)
-
-	// add context checking to exit earlier
-	for scanner.Scan() {
-		if err := ctx.Err(); err != nil {
-			return nil, fmt.Errorf("reading: %w", err)
-		}
-		lines = append(lines, scanner.Text())
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read input: %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("scanner error: %w", err)
+	byteLines := bytes.Split(data, []byte("\n"))
+
+	if len(byteLines) > 0 && len(byteLines[len(byteLines)-1]) == 0 {
+		byteLines = byteLines[:len(byteLines)-1]
+	}
+
+	lines := make([]string, len(byteLines))
+	for i, bl := range byteLines {
+		lines[i] = string(bl)
 	}
 
 	return lines, nil
