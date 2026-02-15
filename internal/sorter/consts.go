@@ -1,6 +1,6 @@
 package sorter
 
-type months int
+type months int32
 
 const (
 	_                = iota
