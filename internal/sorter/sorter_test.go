@@ -3,6 +3,8 @@ package sorter_test
 import (
 	"bytes"
 	"context"
+	"io"
+	"math/rand/v2"
 	"strings"
 	"testing"
 
@@ -10,6 +12,7 @@ import (
 	"sort-util/internal/sorter"
 )
 
+// nolint:funlen,varnamelen
 func TestInMemory_Sort(t *testing.T) {
 	cancelledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -144,7 +147,7 @@ func TestInMemory_Sort(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Basic chronological sort",
+			name: "Basic chronological months sort",
 			cfg: config.Options{
 				Months: true,
 			},
@@ -152,23 +155,21 @@ func TestInMemory_Sort(t *testing.T) {
 			input:    "march 3rd line\nJAN 1st line\nFeb 2nd line\n",
 			expected: "JAN 1st line\nFeb 2nd line\nmarch 3rd line\n",
 			wantErr:  false,
-		}, {name: "Full names and mixed case",
+		}, {name: "Full months names and mixed case",
 			cfg: config.Options{
 				Months: true,
 			},
-			ctx:   context.Background(),
-			input: "July data\njanuary data\nMAY data\n",
-			// Result: january -> MAY -> July
+			ctx:      context.Background(),
+			input:    "July data\njanuary data\nMAY data\n",
 			expected: "january data\nMAY data\nJuly data\n",
 			wantErr:  false},
-		{name: "Full names and mixed case and reverse",
+		{name: "Full months names and mixed case and reverse",
 			cfg: config.Options{
 				Months:  true,
 				Reverse: true,
 			},
-			ctx:   context.Background(),
-			input: "July data\njanuary data\nMAY data\n",
-			// Result: january -> MAY -> July
+			ctx:      context.Background(),
+			input:    "July data\njanuary data\nMAY data\n",
 			expected: "July data\nMAY data\njanuary data\n",
 			wantErr:  false},
 		{
@@ -210,7 +211,7 @@ func TestInMemory_Sort(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := sorter.NewInMemory(tt.cfg)
+			s := sorter.NewInMemory(&tt.cfg)
 			reader := strings.NewReader(tt.input)
 			writer := &bytes.Buffer{}
 
@@ -228,6 +229,55 @@ func TestInMemory_Sort(t *testing.T) {
 
 			if writer.String() != tt.expected {
 				t.Errorf("got:\n%q\nwant:\n%q", writer.String(), tt.expected)
+			}
+		})
+	}
+}
+
+// nolint:gosec // generateData generate random data with same seed for benchmark tests
+func generateData(n int, samples ...string) []string {
+	r := rand.New(rand.NewPCG(42, 1024))
+	res := make([]string, n)
+	for i := 0; i < n; i++ {
+		res[i] = samples[r.IntN(len(samples))]
+	}
+	return res
+}
+
+func BenchmarkInMemory_Sort_FullMatrix(b *testing.B) {
+	const size = 100000
+	dataSets := map[string][]string{
+		"Simple":      generateData(size, "banana", "apple", "cherry", "date"),
+		"Numeric":     generateData(size, "100.5", "-10", "0", "25", "1000"),
+		"HumanSuffix": generateData(size, "1K", "500M", "2.5G", "1T", "100"),
+		"Months":      generateData(size, "Jan", "March", "February", "July"),
+		"Columns":     generateData(size, "A\t10", "B\t5", "C\t100", "D\t1"),
+		"Unique":      generateData(size, "duplicate", "original", "copy", "repeat"),
+	}
+
+	scenarios := []struct {
+		name     string
+		cfg      config.Options
+		dataType string
+	}{
+		{"DefaultAlphabetical", config.Options{}, "Simple"},
+		{"ReverseAlphabetical", config.Options{Reverse: true}, "Simple"},
+		{"NumericSort", config.Options{Numeric: true}, "Numeric"},
+		{"HumanReadable", config.Options{HumanSuffix: true}, "HumanSuffix"},
+		{"MonthSort", config.Options{Months: true}, "Months"},
+		{"ColumnNumeric", config.Options{ColumnNum: 2, Numeric: true}, "Columns"},
+		{"UniqueOnly", config.Options{Unique: true}, "Simple"},
+	}
+
+	for _, sc := range scenarios {
+		b.Run(sc.name, func(b *testing.B) {
+			sorterFunc := sorter.NewInMemory(&sc.cfg)
+
+			rawContent := []byte(strings.Join(dataSets[sc.dataType], "\n"))
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = sorterFunc.Sort(context.Background(), bytes.NewReader(rawContent), io.Discard)
 			}
 		})
 	}
