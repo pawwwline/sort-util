@@ -1,299 +1,50 @@
 package sorter
 
 import (
-	"strconv"
+	"cmp"
 
 	"sort-util/internal/config"
 )
 
-func newComparator(cfg config.Options) func(str1, str2 string) bool {
-	return func(str1, str2 string) bool {
-		if cfg.TrailingBlanks {
-			str1 = trimBlanks(str1)
-			str2 = trimBlanks(str2)
+func compare(rowA, rowB *sortableRow, cfg *config.Options) int {
+	if cfg.Months {
+		if c := cmp.Compare(rowA.monthKey, rowB.monthKey); c != 0 {
+			return c
 		}
-
-		if cfg.ColumnNum != 0 {
-			str1 = getColumn(str1, cfg.ColumnNum)
-			str2 = getColumn(str2, cfg.ColumnNum)
-		}
-
-		if str1 == str2 {
-			return false
-		}
-
-		var isLess bool
-
-		switch {
-		case cfg.Months:
-			isLess = compareMonths(str1, str2)
-		case cfg.HumanSuffix:
-			isLess = compareHumanSuffix(str1, str2)
-		case cfg.Numeric:
-			isLess = compareNumeric(str1, str2)
-		default:
-			isLess = str1 < str2
-		}
-
-		if cfg.Reverse {
-			isLess = !isLess
-		}
-
-		return isLess
 	}
+
+	if cfg.HumanSuffix {
+		if res, handled := cmpValid(rowA.humanKey, rowA.isHumanValid, rowB.humanKey, rowB.isHumanValid); handled {
+			return res
+		}
+	}
+
+	if cfg.Numeric {
+		if res, handled := cmpValid(rowA.numKey, rowA.isNumValid, rowB.numKey, rowB.isNumValid); handled {
+			return res
+		}
+	}
+
+	return cmp.Compare(rowA.processedStr, rowB.processedStr)
 }
 
-func compareNumeric(str1, str2 string) bool {
-	// ignore error so strings that not numeric will be interpreted as 0.0
-	num1, err1 := strconv.ParseFloat(str1, 64)
-	num2, err2 := strconv.ParseFloat(str2, 64)
+// cmpValid order
+func cmpValid[T cmp.Ordered](aVal T, aOk bool, bVal T, bOk bool) (int, bool) {
+	if !aOk && !bOk {
+		return 0, false
+	} // both invalid
+	if !aOk {
+		return 1, true
+	} // a invalid >> a is more
+	if !bOk {
+		return -1, true
+	} // b invalid >> a is less
 
-	if err1 != nil && err2 != nil {
-		return str1 < str2
+	// if both valid compare
+	res := cmp.Compare(aVal, bVal)
+	if res == 0 {
+		return 0, false // equal
 	}
 
-	// if num is not numeric it is always more
-	if err1 != nil {
-		return false // is more
-	}
-	if err2 != nil {
-		return true // is less
-	}
-
-	if num1 != num2 {
-		return num1 < num2
-	}
-
-	return str1 < str2
-}
-
-// uniqueLines in-place deleting non unique elements using two pointers approach
-func uniqueLines(lines []string) []string {
-	minLines := 2
-
-	if len(lines) < minLines {
-		return lines
-	}
-
-	// slow tracks the last unique element found
-	slow := 0
-	for fast := 1; fast < len(lines); fast++ {
-		if lines[fast] != lines[slow] {
-			slow++
-			lines[slow] = lines[fast]
-		}
-	}
-
-	return lines[:slow+1]
-}
-
-// trimBlanks remove spaces by moving pointer without any allocation
-func trimBlanks(line string) string {
-	start := 0
-
-	for start < len(line) && line[start] == ' ' {
-		start++
-	}
-
-	end := len(line)
-	for end > start && line[end-1] == ' ' {
-		end--
-	}
-
-	return line[start:end]
-}
-
-func compareMonths(str1, str2 string) bool {
-	month1 := parseMonths(str1)
-	month2 := parseMonths(str2)
-
-	return month1 < month2
-}
-
-// parseMonths parse months by bytes with 0 allocations.
-func parseMonths(line string) months {
-	if len(line) < minMonthLength {
-		return 0
-	}
-
-	char1 := toUpper(line[0])
-	char2 := toUpper(line[1])
-	char3 := toUpper(line[2])
-
-	switch char1 {
-	case 'J':
-		return parseJ(char2, char3) // JAN || JUN || JUL
-	case 'M':
-		return parseM(char2, char3) // MAR || MAY
-	case 'A':
-		return parseA(char2, char3) // APR || AUG
-	default:
-		return parseUnique(char1, char2, char3) // FEB || SEP || OCT || NOV || DEC
-	}
-}
-
-func parseJ(char2, char3 byte) months {
-	if char2 == 'A' && char3 == 'N' {
-		return january
-	}
-	if char2 == 'U' {
-		if char3 == 'N' {
-			return june
-		}
-		if char3 == 'L' {
-			return july
-		}
-	}
-
-	return 0
-}
-
-func parseM(char2, char3 byte) months {
-	if char2 == 'A' {
-		if char3 == 'R' {
-			return march
-		}
-		if char3 == 'Y' {
-			return may
-		}
-	}
-
-	return 0
-}
-
-func parseA(char2, char3 byte) months {
-	if char2 == 'P' && char3 == 'R' {
-		return april
-	}
-	if char2 == 'U' && char3 == 'G' {
-		return august
-	}
-
-	return 0
-}
-
-// nolint:cyclop // parseUnique parses unique months by bytes to prevent allocations
-func parseUnique(c1, c2, c3 byte) months {
-	switch c1 {
-	case 'F':
-		if c2 == 'E' && c3 == 'B' {
-			return february
-		}
-	case 'S':
-		if c2 == 'E' && c3 == 'P' {
-			return september
-		}
-	case 'O':
-		if c2 == 'C' && c3 == 'T' {
-			return october
-		}
-	case 'N':
-		if c2 == 'O' && c3 == 'V' {
-			return november
-		}
-	case 'D':
-		if c2 == 'E' && c3 == 'C' {
-			return december
-		}
-	}
-	return 0
-}
-
-func toUpper(char byte) byte {
-	if char >= 'a' && char <= 'z' {
-		return char - ('a' - 'A')
-	}
-	return char
-}
-
-// getColumn returns the N-th column (1-based) delimited by tabs.
-// and return empty string if column is not found
-func getColumn(line string, columnNum int) string {
-	// handle case of column with negative or 0 number
-	if columnNum < 1 {
-		return line
-	}
-
-	start := 0
-	currentColumn := 1
-
-	// finds start of column
-	for currentColumn < columnNum {
-		idx := -1
-
-		for i := 0; i < len(line); i++ {
-			if line[i] == '\t' {
-				idx = i
-
-				break
-			}
-		}
-		if idx == -1 {
-			return "" // didn't find out this column
-		}
-
-		start = idx + 1
-		currentColumn++
-	}
-
-	// find out end of column
-	end := start
-	for end < len(line) && line[end] != '\t' {
-		end++
-	}
-
-	return line[start:end]
-}
-
-func compareHumanSuffix(str1, str2 string) bool {
-	num1, err1 := parseHumanSuffix(str1)
-	num2, err2 := parseHumanSuffix(str2)
-
-	if err1 != nil && err2 != nil {
-		return str1 < str2
-	}
-
-	if err1 != nil {
-		return false // is more
-	}
-	if err2 != nil {
-		return true // is less
-	}
-
-	if num1 != num2 {
-		return num1 < num2
-	}
-
-	return str1 < str2
-}
-
-func parseHumanSuffix(line string) (int, error) {
-	if len(line) == 0 {
-		return 0, nil
-	}
-
-	suffix := line[len(line)-1]
-	multiplier := 1
-
-	switch suffix {
-	case 'K':
-		multiplier = kiB
-		line = line[:len(line)-1]
-	case 'M':
-		multiplier = miB
-		line = line[:len(line)-1]
-	case 'G':
-		multiplier = giB
-		line = line[:len(line)-1]
-	case 'T':
-		multiplier = tiB
-		line = line[:len(line)-1]
-	}
-
-	parsedNum, err := strconv.Atoi(line)
-	if err != nil {
-		return 0, err
-	}
-
-	return parsedNum * multiplier, nil
+	return res, true
 }
