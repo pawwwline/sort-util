@@ -12,53 +12,62 @@ import (
 
 // Checker provides methods to determine the sort order of data strings.
 type Checker struct {
-	cfg config.Options
+	cfg *config.Options
 }
 
 // NewChecker provides new Checker struct
-func NewChecker(cfg config.Options) *Checker {
+func NewChecker(cfg *config.Options) *Checker {
 	return &Checker{cfg: cfg}
 }
 
 // CheckSorted use bufio scanner and check only prev and next lines
 func (c *Checker) CheckSorted(ctx context.Context, reader io.Reader) error {
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("write start: %w", err)
+		return fmt.Errorf("context cancelled: %w", err)
 	}
 
 	scanner := bufio.NewScanner(reader)
-	compare := newComparator(c.cfg)
+	lineNum := 0
+	isFirst := true
 
-	var prev string
-	if scanner.Scan() {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("write cancelled: %w", err)
-		}
-		prev = scanner.Text()
-	}
+	var prevRow sortableRow
 
-	lineNum := 1
 	for scanner.Scan() {
-		if err := ctx.Err(); err != nil {
-			return fmt.Errorf("write cancelled: %w", err)
-		}
 		lineNum++
-		curr := scanner.Text()
+		currText := scanner.Text()
+		currRow := newSortableRow(currText, c.cfg)
 
-		if compare(curr, prev) {
-			_, err := fmt.Fprintf(os.Stderr, "sort: -:%d: disorder: %s\n", lineNum, curr)
-			if err != nil {
-				return fmt.Errorf("error writing description: %w", err)
-			}
-
-			return ErrNotSorted
+		if isFirst {
+			prevRow = currRow
+			isFirst = false
+			continue
 		}
-		prev = curr
+
+		res := compare(&currRow, &prevRow, c.cfg)
+
+		isLess := res == -1
+		isDuplicate := c.cfg.Unique && res == 0
+
+		if isLess || isDuplicate {
+			return c.reportDisorder(lineNum, currText)
+		}
+
+		prevRow = currRow
+		isFirst = false
 	}
 
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read lines: %w", err)
+	err := scanner.Err()
+	if err != nil {
+		return fmt.Errorf("error reading input: %w", err)
 	}
 
 	return nil
+}
+
+func (c *Checker) reportDisorder(line int, text string) error {
+	_, err := fmt.Fprintf(os.Stderr, "sort: -:%d: disorder: %s\n", line, text)
+	if err != nil {
+		return fmt.Errorf("error writing to stderr: %w", err)
+	}
+	return ErrNotSorted
 }
