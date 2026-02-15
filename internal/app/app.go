@@ -12,11 +12,11 @@ import (
 
 // App represents the core application responsible for orchestrating the sorting process.
 type App struct {
-	cfg config.Options
+	cfg *config.Options
 }
 
 // New initializes and returns a new App instance with the provided Sorter implementation.
-func New(cfg config.Options) *App {
+func New(cfg *config.Options) *App {
 	return &App{
 		cfg: cfg,
 	}

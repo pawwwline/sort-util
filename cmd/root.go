@@ -33,7 +33,7 @@ var rootCmd = &cobra.Command{
 			reader = file
 		}
 
-		application := app.New(cfg)
+		application := app.New(&cfg)
 
 		return application.Run(cmd.Context(), reader, os.Stdout)
 	},
