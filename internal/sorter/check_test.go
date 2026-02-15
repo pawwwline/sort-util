@@ -10,6 +10,7 @@ import (
 	"sort-util/internal/sorter"
 )
 
+// nolint:funlen,varnamelen
 func TestChecker_CheckSorted(t *testing.T) {
 	cancelledCtx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -87,7 +88,7 @@ func TestChecker_CheckSorted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := sorter.NewChecker(tt.cfg)
+			c := sorter.NewChecker(&tt.cfg)
 			reader := strings.NewReader(tt.input)
 
 			err := c.CheckSorted(tt.ctx, reader)
