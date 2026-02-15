@@ -13,11 +13,11 @@ import (
 
 // InMemory provides an implementation of the Sorter interface that processes data in RAM.
 type InMemory struct {
-	cfg config.Options
+	cfg *config.Options
 }
 
 // NewInMemory initializes a new InMemory sorter with the provided configuration options.
-func NewInMemory(cfg config.Options) *InMemory {
+func NewInMemory(cfg *config.Options) *InMemory {
 	return &InMemory{cfg: cfg}
 }
 
@@ -42,16 +42,43 @@ func (i *InMemory) Sort(ctx context.Context, reader io.Reader, writer io.Writer)
 	return nil
 }
 
-func (i *InMemory) sortLines(sortedLines []string) {
-	compare := newComparator(i.cfg)
+func (i *InMemory) sortLines(lines []string) {
+	rows := make([]sortableRow, len(lines))
 
-	slices.SortFunc(sortedLines, func(a, b string) int {
-		if compare(a, b) {
-			return -1 // a is less
-		}
-		if compare(b, a) {
-			return 1 // b is less
-		}
-		return 0 // equal
+	// preprocess lines O(N)
+	for idx, line := range lines {
+		rows[idx] = newSortableRow(line, i.cfg)
+	}
+
+	slices.SortFunc(rows, func(a, b sortableRow) int {
+		return compare(&a, &b, i.cfg)
 	})
+
+	for idx, row := range rows {
+		lines[idx] = row.original
+	}
+
+	if i.cfg.Reverse {
+		slices.Reverse(lines)
+	}
+}
+
+// uniqueLines in-place deleting non unique elements using two pointers approach
+func uniqueLines(lines []string) []string {
+	minLines := 2
+
+	if len(lines) < minLines {
+		return lines
+	}
+
+	// slow tracks the last unique element found
+	slow := 0
+	for fast := 1; fast < len(lines); fast++ {
+		if lines[fast] != lines[slow] {
+			slow++
+			lines[slow] = lines[fast]
+		}
+	}
+
+	return lines[:slow+1]
 }
