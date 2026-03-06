@@ -9,16 +9,34 @@ import (
 	"sort-util/internal/provider"
 )
 
+// Option configures External or AutoSorter behaviour.
+type Option func(*sorterOptions)
+
+type sorterOptions struct {
+	threshold int
+}
+
+// WithThreshold overrides the default memory threshold (256 MiB).
+// Useful in tests to force the external sort path with small inputs.
+func WithThreshold(bytes int) Option {
+	return func(o *sorterOptions) { o.threshold = bytes }
+}
+
 // AutoSorter transparently switches between in-memory and external sorting depending
 // on how much data has been read. If the input fits within memoryThreshold it never
 // touches the disk.
 type AutoSorter struct {
-	cfg *config.Options
+	cfg       *config.Options
+	threshold int
 }
 
 // NewAutoSorter initializes a new AutoSorter with the provided configuration.
-func NewAutoSorter(cfg *config.Options) *AutoSorter {
-	return &AutoSorter{cfg: cfg}
+func NewAutoSorter(cfg *config.Options, opts ...Option) *AutoSorter {
+	o := &sorterOptions{threshold: memoryThreshold}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return &AutoSorter{cfg: cfg, threshold: o.threshold}
 }
 
 // Sort reads the input and delegates to in-memory or external sort as needed.
@@ -44,7 +62,7 @@ func (a *AutoSorter) Sort(ctx context.Context, reader io.Reader, writer io.Write
 		buffer = append(buffer, line)
 		memUsed += len(line)
 
-		if memUsed > memoryThreshold {
+		if memUsed > a.threshold {
 			return a.runExternal(ctx, buffer, lineReader, writer)
 		}
 	}
@@ -67,6 +85,6 @@ func (a *AutoSorter) runExternal(
 	lineReader *provider.ScannerLineReader,
 	writer io.Writer,
 ) error {
-	ext := NewExternal(a.cfg)
+	ext := NewExternal(a.cfg, WithThreshold(a.threshold))
 	return ext.sortCore(ctx, buffer, lineReader, writer)
 }

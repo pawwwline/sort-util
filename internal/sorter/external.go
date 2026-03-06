@@ -15,12 +15,17 @@ import (
 
 // External implements disk-backed external merge sort for datasets that exceed available memory.
 type External struct {
-	cfg *config.Options
+	cfg       *config.Options
+	threshold int
 }
 
 // NewExternal initializes a new External sorter with the provided configuration.
-func NewExternal(cfg *config.Options) *External {
-	return &External{cfg: cfg}
+func NewExternal(cfg *config.Options, opts ...Option) *External {
+	o := &sorterOptions{threshold: memoryThreshold}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return &External{cfg: cfg, threshold: o.threshold}
 }
 
 // Sort reads all input, flushing sorted runs to disk when the memory threshold is
@@ -81,7 +86,7 @@ func (e *External) createRuns(
 	batch := initialBatch
 	batchSize := batchByteSize(initialBatch)
 
-	if len(batch) > 0 && batchSize >= memoryThreshold {
+	if len(batch) > 0 && batchSize >= e.threshold {
 		path, flushErr := e.sortAndFlush(batch)
 		if flushErr != nil {
 			return paths, nil, flushErr
@@ -106,7 +111,7 @@ func (e *External) createRuns(
 		batch = append(batch, line)
 		batchSize += len(line)
 
-		if batchSize >= memoryThreshold {
+		if batchSize >= e.threshold {
 			path, flushErr := e.sortAndFlush(batch)
 			if flushErr != nil {
 				return paths, nil, flushErr
