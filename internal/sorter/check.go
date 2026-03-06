@@ -43,9 +43,9 @@ func (c *Checker) CheckSorted(ctx context.Context, reader io.Reader) error {
 			continue
 		}
 
-		res := compare(&currRow, &prevRow, c.cfg)
+		res := compareForSort(&currRow, &prevRow, c.cfg)
 
-		isLess := res == -1
+		isLess := res < 0
 		isDuplicate := c.cfg.Unique && res == 0
 
 		if isLess || isDuplicate {
