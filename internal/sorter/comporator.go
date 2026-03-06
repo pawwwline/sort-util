@@ -28,6 +28,16 @@ func compare(rowA, rowB *sortableRow, cfg *config.Options) int {
 	return cmp.Compare(rowA.processedStr, rowB.processedStr)
 }
 
+// compareForSort wraps compare and negates the result when cfg.Reverse is set,
+// so it can be used directly as a sort comparator without a post-sort reversal.
+func compareForSort(rowA, rowB *sortableRow, cfg *config.Options) int {
+	res := compare(rowA, rowB, cfg)
+	if cfg.Reverse {
+		return -res
+	}
+	return res
+}
+
 // cmpValid order
 func cmpValid[T cmp.Ordered](aVal T, aOk bool, bVal T, bOk bool) (int, bool) {
 	if !aOk && !bOk {
