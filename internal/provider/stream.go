@@ -3,35 +3,43 @@ package provider
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 )
 
-// ReadLines reads all lines from the provided reader into a string slice.
-func ReadLines(ctx context.Context, reader io.Reader) ([]string, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("read start: %w", err)
+const scannerInitBufSize = 64 * 1024
+
+// ScannerLineReader wraps bufio.Scanner to expose a simple line-by-line Next() API.
+type ScannerLineReader struct {
+	scanner *bufio.Scanner
+}
+
+// NewLineReader creates a ScannerLineReader that reads lines from r, capping each line at maxLineSize bytes.
+func NewLineReader(r io.Reader, maxLineSize int) *ScannerLineReader {
+	scanner := bufio.NewScanner(r)
+
+	buf := make([]byte, 0, scannerInitBufSize)
+	scanner.Buffer(buf, maxLineSize)
+
+	scanner.Split(bufio.ScanLines)
+
+	return &ScannerLineReader{
+		scanner: scanner,
+	}
+}
+
+// Next returns the next line from the reader, or io.EOF when the input is exhausted.
+func (r *ScannerLineReader) Next() (string, error) {
+	if r.scanner.Scan() {
+		return r.scanner.Text(), nil
 	}
 
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read input: %w", err)
+	if err := r.scanner.Err(); err != nil {
+		return "", fmt.Errorf("scanner error: %w", err)
 	}
 
-	byteLines := bytes.Split(data, []byte("\n"))
-
-	if len(byteLines) > 0 && len(byteLines[len(byteLines)-1]) == 0 {
-		byteLines = byteLines[:len(byteLines)-1]
-	}
-
-	lines := make([]string, len(byteLines))
-	for i, bl := range byteLines {
-		lines[i] = string(bl)
-	}
-
-	return lines, nil
+	return "", io.EOF
 }
 
 // WriteLines writes a slice of strings to the writer, each followed by a newline.

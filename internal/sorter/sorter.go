@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"sort-util/internal/provider"
 
 	"sort-util/internal/config"
-	"sort-util/internal/provider"
 )
 
 // InMemory provides an implementation of the Sorter interface that processes data in RAM.
@@ -23,26 +23,42 @@ func NewInMemory(cfg *config.Options) *InMemory {
 
 // Sort in memory implementation with config flag handling.
 func (i *InMemory) Sort(ctx context.Context, reader io.Reader, writer io.Writer) error {
-	lines, err := provider.ReadLines(ctx, reader)
-	if err != nil {
-		return fmt.Errorf("read lines: %w", err)
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("context cancelled: %w", err)
 	}
 
-	i.sortLines(lines) // sort lines in place
+	lineReader := provider.NewLineReader(reader, defaultMaxLineSize)
 
-	if i.cfg.Unique {
-		lines = uniqueLines(lines)
+	var lines []string
+
+	for {
+		if err := ctx.Err(); err != nil {
+			return fmt.Errorf("context cancelled: %w", err)
+		}
+
+		line, err := lineReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("read line: %w", err)
+		}
+
+		lines = append(lines, line)
 	}
 
-	err = provider.WriteLines(ctx, writer, lines)
-	if err != nil {
+	lines = i.sortLines(lines)
+
+	if err := provider.WriteLines(ctx, writer, lines); err != nil {
 		return fmt.Errorf("write lines: %w", err)
 	}
 
 	return nil
 }
 
-func (i *InMemory) sortLines(lines []string) {
+// sortLines preprocesses, sorts and optionally deduplicates lines in-place.
+// It returns a (possibly shorter) slice — callers must use the returned value.
+func (i *InMemory) sortLines(lines []string) []string {
 	rows := make([]sortableRow, len(lines))
 
 	// preprocess lines O(N)
@@ -51,34 +67,34 @@ func (i *InMemory) sortLines(lines []string) {
 	}
 
 	slices.SortFunc(rows, func(a, b sortableRow) int {
-		return compare(&a, &b, i.cfg)
+		return compareForSort(&a, &b, i.cfg)
 	})
 
+	if i.cfg.Unique {
+		rows = uniqueRows(rows, i.cfg)
+	}
+
+	lines = lines[:len(rows)]
 	for idx, row := range rows {
 		lines[idx] = row.original
 	}
 
-	if i.cfg.Reverse {
-		slices.Reverse(lines)
-	}
+	return lines
 }
 
-// uniqueLines in-place deleting non unique elements using two pointers approach
-func uniqueLines(lines []string) []string {
-	minLines := 2
-
-	if len(lines) < minLines {
-		return lines
+// uniqueRows deduplicates sorted rows by sort key using a two-pointer approach.
+func uniqueRows(rows []sortableRow, cfg *config.Options) []sortableRow {
+	if len(rows) < minDeduplicateLen {
+		return rows
 	}
 
-	// slow tracks the last unique element found
 	slow := 0
-	for fast := 1; fast < len(lines); fast++ {
-		if lines[fast] != lines[slow] {
+	for fast := 1; fast < len(rows); fast++ {
+		if compare(&rows[slow], &rows[fast], cfg) != 0 {
 			slow++
-			lines[slow] = lines[fast]
+			rows[slow] = rows[fast]
 		}
 	}
 
-	return lines[:slow+1]
+	return rows[:slow+1]
 }
