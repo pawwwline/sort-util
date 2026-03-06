@@ -28,15 +28,15 @@ func (a *App) Run(ctx context.Context, reader io.Reader, writer io.Writer) error
 		checker := sorter.NewChecker(a.cfg)
 		err := checker.CheckSorted(ctx, reader)
 		if err != nil {
-			return fmt.Errorf("check sorting: %writer", err)
+			return fmt.Errorf("check sorting: %w", err)
 		}
 
 		return nil
 	}
 
-	inMemSorter := sorter.NewInMemory(a.cfg)
-	if err := inMemSorter.Sort(ctx, reader, writer); err != nil {
-		return fmt.Errorf("sort input: %writer", err)
+	autoSorter := sorter.NewAutoSorter(a.cfg)
+	if err := autoSorter.Sort(ctx, reader, writer); err != nil {
+		return fmt.Errorf("sort input: %w", err)
 	}
 
 	return nil
