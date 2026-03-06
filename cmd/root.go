@@ -55,5 +55,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&cfg.CheckSorted, "check-sorted", "c", false, "check sorted")
 	rootCmd.Flags().BoolVarP(&cfg.Months, "months", "m", false, "compare months")
 	rootCmd.Flags().IntVarP(&cfg.ColumnNum, "column", "k", 1, "compare columns")
-	rootCmd.Flags().BoolVarP(&cfg.HumanSuffix, "human-numeric-sort", "h", false, "human readable suffix, example K=KB M=MB")
+	rootCmd.Flags().BoolVar(&cfg.HumanSuffix, "human-numeric-sort", false, "human readable suffix, example K=KB M=MB")
 }
